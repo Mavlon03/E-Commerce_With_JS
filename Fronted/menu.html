@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <footer class="mt-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="Basket.html" class="btn btn-dark">Basket (<span id="basketCount">0</span>)</a>
+            <a href="order.html" class="btn btn-secondary">Orders</a>
+        </div>
+    </footer>
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1>E-Commerce</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    Categories
+                </div>
+                <div class="card-body">
+                    <ul id="categoryList" class="list-group mb-3"></ul>
+                    <form id="addCategoryForm" onsubmit="addCategory(event)">
+                        <div class="input-group">
+                            <input type="text" id="categoryName" class="form-control" placeholder="New category name" required>
+                            <button type="submit" class="btn btn-dark">Add</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    Products
+                </div>
+                <div class="card-body">
+                    <div class="row" id="productList"></div>
+                    <div class="text-end">
+                        <button class="btn btn-dark mt-3" onclick="openProductForm()">+ Add Product</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="productModalLabel">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" onsubmit="saveProduct(event)">
+                    <input type="hidden" id="productId">
+                    <div class="mb-3 text-center">
+                        <img src="images/default.jpg" id="productImage" class="img-thumbnail" width="150" height="150" style="cursor: pointer;" onclick="document.getElementById('fileInput').click();">
+                        <input id="fileInput" type="file" style="display: none;" onchange="uploadFile(event)">
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" id="productName" class="form-control" placeholder="Product name" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="number" id="productPrice" class="form-control" placeholder="Product price" required>
+                    </div>
+                    <div class="mb-3">
+                        <select id="productCategory" class="form-select" required>
+                            <option selected disabled>Select Category</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    let photoId = null;
+
+    function loadCategories() {
+        axios.get("http://localhost:8080/category")
+            .then(res => {
+                let categoryList = document.getElementById("categoryList");
+                let productCategory = document.getElementById("productCategory");
+                categoryList.innerHTML = "";
+                productCategory.innerHTML = '<option selected disabled>Select Category</option>';
+                res.data.forEach(category => {
+                    categoryList.innerHTML += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${category.name}
+                                <button class="btn btn-sm btn-warning" onclick="editCategory(${category.id}, '${category.name}')">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteCategory(${category.id})">Delete</button>
+                            </li>`;
+                    productCategory.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+                });
+            })
+            .catch(err => alert("Failed to load categories!"));
+    }
+
+    function addCategory(event) {
+        event.preventDefault();
+        let categoryName = document.getElementById("categoryName").value;
+        axios.post("http://localhost:8080/category", { name: categoryName })
+            .then(() => {
+                loadCategories();
+                document.getElementById("categoryName").value = "";
+            })
+            .catch(err => alert("Failed to add category!"));
+    }
+
+    function deleteCategory(id) {
+        axios.delete(`http://localhost:8080/category/${id}`)
+            .then(() => loadCategories())
+            .catch(err => alert("Failed to delete category!"));
+    }
+
+    function editCategory(id, name) {
+        let newName = prompt("Edit Category Name", name);
+        if (newName && newName !== name) {
+            axios.put(`http://localhost:8080/category/${id}`, { name: newName })
+                .then(() => loadCategories())
+                .catch(err => alert("Failed to update category!"));
+        }
+    }
+
+
+
+    function loadProducts() {
+        axios.get("http://localhost:8080/product")
+            .then(res => {
+                const productList = document.getElementById("productList");
+                productList.innerHTML = "";
+                res.data.forEach(product => {
+                    productList.innerHTML += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <img src="http://localhost:8080/file/${product.attachment.id}" class="card-img-top" alt="${product.name}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${product.name}</h5>
+                                    <p class="card-text">Price: ${product.price}</p>
+                                    <div class="form-group">
+                                    <button class="btn btn-danger" onclick="deleteProduct(${product.id})">Delete</button>
+                                    <button class="btn btn-primary" onclick="editProduct(${product.id})">Edit </button>
+                                    </div>
+
+
+
+                                    <hr>
+                                    <button class="btn btn-success" onclick="addToBasket(${product.id}, '${product.name}', ${product.price}, 'http://localhost:8080/file/${product.attachment.id}')">Add to Basket</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            })
+            .catch(err => alert("Failed to load products!"));
+    }
+    function openProductForm() {
+        document.getElementById("productForm").reset();
+        document.getElementById("productImage").src = "images/default.jpg";
+        photoId = null;
+        new bootstrap.Modal(document.getElementById("productModal")).show();
+    }
+
+    function uploadFile(event) {
+        let file = event.target.files[0];
+        if (file) {
+            let formData = new FormData();
+            formData.append("file", file);
+            axios.post("http://localhost:8080/file", formData)
+                .then(res => {
+                    photoId = res.data;
+                    document.getElementById("productImage").src = `http://localhost:8080/file/${photoId}`;
+                })
+                .catch(err => alert("File upload failed!"));
+        }
+    }
+
+    function saveProduct(event) {
+        event.preventDefault();
+        let productId = document.getElementById("productId").value;
+        let productName = document.getElementById("productName").value;
+        let productPrice = document.getElementById("productPrice").value;
+        let productCategory = document.getElementById("productCategory").value;
+
+        let productData = {
+            name: productName,
+            price: productPrice,
+            categoryId: productCategory,
+            attachmentId: photoId
+        };
+
+        let request = productId
+            ? axios.put(`http://localhost:8080/product/${productId}`, productData)
+            : axios.post("http://localhost:8080/product", productData);
+
+        request
+            .then(() => {
+                loadProducts();
+                bootstrap.Modal.getInstance(document.getElementById("productModal")).hide();
+            })
+            .catch(err => alert("Failed to save product!"));
+    }
+
+    function deleteProduct(id) {
+        axios.delete(`http://localhost:8080/product/${id}`)
+            .then(() => loadProducts())
+            .catch(err => alert("Failed to delete product!"));
+    }
+
+    function editProduct(id) {
+        axios.get(`http://localhost:8080/product/${id}`)
+            .then(res => {
+                let product = res.data;
+                document.getElementById("productId").value = product.id;
+                document.getElementById("productName").value = product.name;
+                document.getElementById("productPrice").value = product.price;
+                document.getElementById("productCategory").value = product.category.id;
+                photoId = product.attachment.id;
+                document.getElementById("productImage").src = `http://localhost:8080/file/${photoId}`;
+                new bootstrap.Modal(document.getElementById("productModal")).show();
+            })
+            .catch(err => alert("Failed to load product details!"));
+    }
+
+
+
+    function updateBasketUI() {
+        const basket = JSON.parse(localStorage.getItem("basket")) || [];
+        document.getElementById("basketCount").innerText = basket.length;
+    }
+
+    function addToBasket(productId, productName, productPrice, productImage) {
+        const basket = JSON.parse(localStorage.getItem("basket")) || [];
+        const existingProduct = basket.find(item => item.id === productId);
+
+        if (existingProduct) {
+            existingProduct.amount += 1;
+        } else {
+            basket.push({
+                id: productId,
+                name: productName,
+                price: productPrice,
+                image: productImage,
+                amount: 1
+            });
+        }
+
+        localStorage.setItem("basket", JSON.stringify(basket));
+        updateBasketUI();
+
+    }
+
+
+    loadCategories();
+    loadProducts();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
