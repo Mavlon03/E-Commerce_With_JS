@@ -31,6 +31,11 @@ public class Order {
     @JsonManagedReference
     private List<OrderItem> items;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+
     public String getDateTimeFormatted() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         return dateTime.format(formatter);

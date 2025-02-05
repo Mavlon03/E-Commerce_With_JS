@@ -14,6 +14,7 @@ import java.util.List;
 public class OrderDTO {
 
 
-    private LocalDateTime dateTime;
+    private Integer userId;
     private List<OrderItemDTO> items;
+    private LocalDateTime dateTime;
 }

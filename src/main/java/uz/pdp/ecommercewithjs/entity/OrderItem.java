@@ -20,7 +20,7 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id", nullable = false)
-    @JsonBackReference // Bu yerda qo‘shdik
+    @JsonBackReference
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -28,12 +28,12 @@ public class OrderItem {
     private Product product;
 
     @Column(nullable = false)
-    private Integer quantity;
+    private Double quantity;
 
     @Column(nullable = false)
-    private Integer price;
+    private Double price;
 
-    public Integer getTotalPrice() {
+    public Double getTotalPrice() {
         return quantity * price;
     }
 }

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basket</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
 <div class="container mt-5">
@@ -14,16 +13,15 @@
     <div id="basketList" class="mt-4"></div>
     <div class="text-end mt-3">
         <button class="btn btn-info" onclick="placeOrder()">Place Order</button>
-        <a href="order.html">Order page</a>
+        <a href="order.html" class="btn btn-secondary">Order page</a>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
     function loadBasket() {
         let basket = JSON.parse(localStorage.getItem("basket")) || [];
         let basketList = document.getElementById("basketList");
-        let totalAmount = 0;
-        let amountProduct = 0 ;
         basketList.innerHTML = "";
 
         if (basket.length === 0) {
@@ -39,7 +37,7 @@
                             <img src="${item.image}" class="img-thumbnail me-3" style="width: 100px; height: 100px;" alt="${item.name}">
                             <div>
                                 <h5>${item.name}</h5>
-                                <p>Price: ${item.price}</p>
+                                <p>Price: ${item.price} x ${item.amount} = ${(item.amount * item.price).toFixed(2)}</p>
                             </div>
                         </div>
                         <div>
@@ -48,9 +46,6 @@
                             <span class="mx-2">${item.amount}</span>
                             <button class="btn btn-secondary btn-sm" onclick="updateBasket(${item.id}, 'increment')">+</button>
                         </div>
-                    </div>
-                    <div class="text-end me-3">
-                        Total: ${(item.amount * item.price).toFixed(2)}
                     </div>
                 </div>`;
         });
@@ -81,15 +76,20 @@
                 }
             }
         }
-
         saveBasket(basket);
     }
 
     function placeOrder() {
         let basket = JSON.parse(localStorage.getItem("basket")) || [];
-
         if (basket.length === 0) {
             alert("Your basket is empty!");
+            return;
+        }
+
+        let token = localStorage.getItem("token");
+        if (!token) {
+            alert("You need to login first!");
+            window.location.href = "login.html";
             return;
         }
 
@@ -97,25 +97,21 @@
             dateTime: new Date().toISOString(),
             items: basket.map(item => ({
                 productId: item.id,
-                quantity: item.amount
+                quantity: item.amount,
+                price: item.price
             }))
         };
 
-        axios.post("http://localhost:8080/order/create", orderDTO)
-            .then(response => {
-                localStorage.removeItem("basket");
-                alert("Order placed successfully!");
-                window.location.href = "order.html";
-            })
-            .catch(error => {
-                console.error("Error placing order:", error);
-                alert("Failed to place order!");
-            });
+        axios.post("http://localhost:8080/order/create", orderDTO, {
+            headers: { "Authorization": `Bearer ${token}` }
+        }).then(() => {
+            localStorage.removeItem("basket");
+            alert("Order placed successfully!");
+            window.location.href = "order.html";
+        }).catch(error => alert("Error placing order: " + error));
     }
 
     loadBasket();
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
