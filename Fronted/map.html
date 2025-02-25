@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yandex Maps - Interaktiv Nuqtalar</title>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <style>
+        #map { width: 100%; height: 500px; }
+        button { margin: 10px; padding: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h2>Yandex Maps - Joylar qo‘shish va o‘chirish</h2>
+<button onclick="logPoints()">📜 JSON formatda ko‘rish</button>
+<div id="map"></div>
+
+<script>
+    ymaps.ready(init);
+
+    let map, polyline;
+    // Default holda 5 ta nuqta
+    let points = [
+        [41.3275, 69.2811],
+        [41.3123, 69.2787],
+        [41.2971, 69.2163],
+        [41.3100, 69.2500],
+        [41.3200, 69.2600]
+    ];
+
+    function init() {
+        map = new ymaps.Map("map", {
+            center: [41.2995, 69.2401], // Toshkent markazi
+            zoom: 12
+        });
+
+        map.events.add('click', function (e) {
+            let coords = e.get('coords');
+            addPoint(coords);
+        });
+
+        redrawAll();
+    }
+
+    function redrawAll() {
+        map.geoObjects.removeAll();
+        points.forEach(point => {
+            let placemark = new ymaps.Placemark(point, {}, { preset: 'islands#redIcon' });
+            placemark.events.add('click', function (e) {
+                e.stopPropagation();
+                removePoint(point);
+            });
+            map.geoObjects.add(placemark);
+        });
+        drawPolyline();
+    }
+
+    function addPoint(coords) {
+        points.push(coords);
+        redrawAll();
+    }
+
+    function removePoint(coords) {
+        points = points.filter(point => point[0] !== coords[0] || point[1] !== coords[1]);
+        redrawAll();
+    }
+
+    function drawPolyline() {
+        if (polyline) {
+            map.geoObjects.remove(polyline);
+        }
+        if (points.length > 1) {
+            let order = getNearestNeighborOrder(points);
+            polyline = new ymaps.Polyline(order, {}, {
+                strokeColor: "#FF0000", // Qizil chiziq
+                strokeWidth: 4,
+                strokeOpacity: 0.8
+            });
+            map.geoObjects.add(polyline);
+        }
+    }
+
+    function getNearestNeighborOrder(pts) {
+        if (!pts.length) return [];
+        let ptsCopy = pts.slice();
+        let order = [];
+        let current = ptsCopy.shift();
+        order.push(current);
+        while (ptsCopy.length > 0) {
+            let nearestIndex = 0;
+            let nearestDistance = distance(current, ptsCopy[0]);
+            for (let i = 1; i < ptsCopy.length; i++) {
+                let d = distance(current, ptsCopy[i]);
+                if (d < nearestDistance) {
+                    nearestDistance = d;
+                    nearestIndex = i;
+                }
+            }
+            current = ptsCopy.splice(nearestIndex, 1)[0];
+            order.push(current);
+        }
+        return order;
+    }
+
+    function distance(a, b) {
+        let dx = a[0] - b[0];
+        let dy = a[1] - b[1];
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function logPoints() {
+        console.log(JSON.stringify(points, null, 2));
+    }
+</script>
+
+</body>
+</html>

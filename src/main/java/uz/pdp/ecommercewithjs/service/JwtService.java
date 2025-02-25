@@ -46,6 +46,8 @@ public class JwtService {
     private SecretKey getSecretKey(){
         return Keys.hmacShaKeyFor("01234567890123456789012345678912".getBytes());
     }
+
+
     public boolean validate(String token) {
         try {
             getClaims(token);
@@ -55,14 +57,7 @@ public class JwtService {
             return false;
         }
     }
-//    public String getUserName(String token) {
-//        Claims claims = Jwts.parser()
-//                .verifyWith(getSecretKey())
-//                .build()
-//                .parseSignedClaims(token)
-//                .getPayload();
-//        return claims.getSubject();
-//    }
+
 public String getUserName(String token) {
     Claims claims = getClaims(token);
 
@@ -73,7 +68,6 @@ public String getUserName(String token) {
     public User getUserFromToken(String token) {
         try {
             Claims claims = getClaims(token);
-
             String username = claims.getSubject();
             Integer userId = (Integer) claims.get("id");
             String fullname = (String) claims.get("fullname");

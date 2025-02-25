@@ -20,46 +20,48 @@ import java.util.List;
 
 @Configuration
 public class SecurityConfig {
-@Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomUserDetailService customUserDetailService, MyFilter myFilter) throws Exception {
-
-    http.csrf(AbstractHttpConfigurer::disable);
-    http.cors(cors -> cors.configurationSource(request -> {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:63342"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-        return config;
-    }));
-
-
-    http.authorizeHttpRequests(req -> req
-            .anyRequest().permitAll());
-    http.userDetailsService(customUserDetailService);
-
-    http.addFilterBefore(myFilter, UsernamePasswordAuthenticationFilter.class);
-
-    return http.build();
-
-}
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomUserDetailService customUserDetailService, MyFilter myFilter) throws Exception {
+
+        http.csrf(AbstractHttpConfigurer::disable);
+
+        http.cors(cors -> cors.configurationSource(request -> {
+            CorsConfiguration config = new CorsConfiguration();
+            config.setAllowedOrigins(List.of("http://localhost:63342"));
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            config.setAllowedHeaders(List.of("*"));
+            config.setAllowCredentials(true);
+            return config;
+        }));
+
+        http.authorizeHttpRequests(req -> req
+                .requestMatchers("/register/**", "/file/**", "/category/**", "/login/**", "/order/**", "/product/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+        );
+
+        http.userDetailsService(customUserDetailService);
+        http.addFilterBefore(myFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationProvider providerManager(CustomUserDetailService customUserDetailService){
-        var authProvider = new DaoAuthenticationProvider(passwordEncoder());
+    public AuthenticationProvider authenticationProvider(CustomUserDetailService customUserDetailService) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(customUserDetailService);
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider){
+    public AuthenticationManager authenticationManager(AuthenticationProvider authenticationProvider) {
         return new ProviderManager(authenticationProvider);
     }
-
-
 }
